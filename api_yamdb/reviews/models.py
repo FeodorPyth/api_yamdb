@@ -142,6 +142,8 @@ class Review(models.Model):
             ),
         )
         ordering = ('title',)
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
 
 
 class Comment(models.Model):
@@ -158,8 +160,10 @@ class Comment(models.Model):
         related_name='comments'
     )
     pub_date = models.DateTimeField(
-        default=timezone.now
+        auto_now_add=True
     )
 
     class Meta:
         ordering = ('review', 'author')
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
