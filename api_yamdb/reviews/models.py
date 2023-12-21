@@ -115,6 +115,7 @@ class GenreTitle(models.Model):
 
 
 class Review(models.Model):
+    """Модель отзыва"""
     SCORE_CHOICES = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE,
@@ -144,6 +145,7 @@ class Review(models.Model):
 
 
 class Comment(models.Model):
+    """Модель комментария"""
     review = models.ForeignKey(
         Review, on_delete=models.CASCADE,
         related_name='comments'
