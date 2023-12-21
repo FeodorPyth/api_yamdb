@@ -10,14 +10,14 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api_yamdb.settings import AUTHENTICATION_EMAIL
+from .permissions import IsAdminPermission
+from reviews.models import MyUser
 from .serializers import (
     SignUpSerializer,
     TokenSerializer,
     UserAdminSerializer,
     UserSerializer
 )
-from .permissions import IsAdminPermission
-from reviews.models import MyUser
 
 
 class SignUpAPIView(views.APIView):
