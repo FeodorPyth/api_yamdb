@@ -112,3 +112,52 @@ class GenreTitle(models.Model):
 
     def __str__(self):
         return f'{self.genre} {self.title}'
+
+
+class Review(models.Model):
+    SCORE_CHOICES = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    title = models.ForeignKey(
+        Title, on_delete=models.CASCADE,
+        related_name='reviews'
+    )
+    text = models.TextField(
+        max_length=5000
+    )
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='reviews'
+    )
+    score = models.SmallIntegerField(
+        choices=SCORE_CHOICES
+    )
+    pub_date = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        constraints = (
+            models.UniqueConstraint(
+                fields=['title', 'author'], name='title_one_review'
+            ),
+        )
+        ordering = ('title',)
+
+
+class Comment(models.Model):
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    text = models.TextField(
+        max_length=2000
+    )
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    pub_date = models.DateTimeField(
+        default=timezone.now
+    )
+
+    class Meta:
+        ordering = ('review', 'author')
