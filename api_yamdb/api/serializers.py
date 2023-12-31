@@ -7,6 +7,7 @@ from rest_framework.validators import UniqueValidator
 from reviews.models import (
     Category,
     Genre,
+    MyUser,
     Title,
 )
 
@@ -62,6 +63,65 @@ class TitleSerializer(serializers.ModelSerializer):
         if value > dt.datetime.now().year:
             raise serializers.ValidationError(
                 {'year': 'Год выпуска произведения не может быть в будущем!'}
+
+
+class UserSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(max_length=254, required=True)
+    username = serializers.RegexField(
+        max_length=150,
+        required=True,
+        regex=r'^[\w.@+-]+\Z',
+    )
+
+    class Meta:
+        model = MyUser
+        fields = [
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'bio',
+            'role'
+        ]
+        read_only_fields = ['username', 'email', 'role']
+
+
+class UserAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MyUser
+        fields = [
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'bio',
+            'role'
+        ]
+
+
+class SignUpSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(max_length=254, required=True)
+    username = serializers.RegexField(
+        max_length=150,
+        required=True,
+        regex=r'^[\w.@+-]+\Z',
+    )
+
+    class Meta:
+        model = MyUser
+        fields = [
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'bio',
+            'role'
+        ]
+
+    def validate_username(self, value):
+        if 'me' == value:
+            raise serializers.ValidationError(
+                {'username': 'Имя "me" для пользователя запрещено!'}
             )
         return value
 
@@ -87,3 +147,16 @@ class CategorySerializer(serializers.ModelSerializer):
             'slug',
         )
         model = Category
+
+
+class TokenSerializer(serializers.ModelSerializer):
+    username = serializers.RegexField(
+        max_length=150,
+        required=True,
+        regex=r'^[\w.@+-]+\Z',
+    )
+    confirmation_code = serializers.CharField(max_length=5, required=True)
+
+    class Meta:
+        model = MyUser
+        fields = ('username', 'confirmation_code')
