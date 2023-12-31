@@ -5,19 +5,49 @@ from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, status, views, viewsets
 from rest_framework.decorators import action
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api_yamdb.settings import AUTHENTICATION_EMAIL
-from .permissions import IsAdminPermission
-from reviews.models import MyUser
+from .permissions import IsAdminOrReadOnly, IsAdminPermission
+from reviews.models import MyUser, Genre, Category, Title
 from .serializers import (
     SignUpSerializer,
     TokenSerializer,
     UserAdminSerializer,
-    UserSerializer
+    UserSerializer,
+    GenreSerializer,
+    CategorySerializer,
+    TitleSerializer,
 )
+from .viewsets import CreateListDestroyViewSet
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Title.objects.all()
+    serializer_class = TitleSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    pagination_class = LimitOffsetPagination
+
+
+class GenreViewSet(CreateListDestroyViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    pagination_class = LimitOffsetPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+
+
+class CategoryViewSet(CreateListDestroyViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    pagination_class = LimitOffsetPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class SignUpAPIView(views.APIView):
