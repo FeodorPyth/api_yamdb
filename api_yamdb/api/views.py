@@ -2,52 +2,80 @@ import random
 
 from django.core.mail import send_mail
 from django.db import IntegrityError
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, status, views, viewsets
 from rest_framework.decorators import action
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api_yamdb.settings import AUTHENTICATION_EMAIL
+from .filters import TitleViewSetFilter
 from .permissions import IsAdminOrReadOnly, IsAdminPermission
 from reviews.models import MyUser, Genre, Category, Title
 from .serializers import (
+    CategorySerializer,
+    GenreSerializer,
     SignUpSerializer,
+    TitleReadSerializer,
+    TitleWriteSerializer,
     TokenSerializer,
     UserAdminSerializer,
     UserSerializer,
-    GenreSerializer,
-    CategorySerializer,
-    TitleSerializer,
 )
 from .viewsets import CreateListDestroyViewSet
 
 
-class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
-    serializer_class = TitleSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = LimitOffsetPagination
-
-
-class GenreViewSet(CreateListDestroyViewSet):
-    queryset = Genre.objects.all()
-    serializer_class = GenreSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = LimitOffsetPagination
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-
-
 class CategoryViewSet(CreateListDestroyViewSet):
+    '''
+    Вьюсет для категорий:
+    GET-запрос - получение списка категорий;
+    POST-запрос - добавляет новую категорию;
+    DELETE-запрос - удаление категории.
+    '''
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = LimitOffsetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    lookup_field = 'slug'
+
+
+class GenreViewSet(CreateListDestroyViewSet):
+    '''
+    Вьюсет для жанров:
+    GET-запрос - получение списка жанров;
+    POST-запрос - добавляет новый жанр;
+    DELETE-запрос - удаление жанра.
+    '''
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    '''
+    Вьюсет для произведений:
+    GET-запрос - получение списка произведений,
+    по id получение конкретного произведения;
+    POST-запрос - добавляет новое произведение;
+    PATCH-запрос - частичное обновление произведения;
+    DELETE-запрос - удаление произведения.
+    '''
+    queryset = Title.objects.all()
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = TitleViewSetFilter
+    http_method_names = ['get', 'post', 'delete', 'patch']
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleReadSerializer
+        return TitleWriteSerializer
 
 
 class SignUpAPIView(views.APIView):
@@ -96,7 +124,7 @@ class SignUpAPIView(views.APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class TokenView(views.APIView):
+class TokenApiView(views.APIView):
     '''
     Вьюсет для получения токена:
     POST-запрос с полями username, confirmation_code

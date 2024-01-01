@@ -1,8 +1,6 @@
-import datetime as dt
-
 from rest_framework import serializers
-from rest_framework.relations import SlugRelatedField
 from rest_framework.validators import UniqueValidator
+from rest_framework.relations import SlugRelatedField
 
 from reviews.models import (
     Category,
@@ -12,9 +10,27 @@ from reviews.models import (
 )
 
 
+class CategorySerializer(serializers.ModelSerializer):
+    """Сериализатор для категории."""
+    slug = serializers.RegexField(
+        max_length=50,
+        required=True,
+        regex=r'^[-a-zA-Z0-9_]+$',
+        validators=[
+            UniqueValidator(
+                queryset=Category.objects.all(),
+                message='Поле slug должно быть уникальным!'
+            )
+        ]
+    )
+
+    class Meta:
+        model = Category
+        fields = ('name', 'slug')
+
+
 class GenreSerializer(serializers.ModelSerializer):
-    """Сериализатор для Жанра."""
-    name = serializers.CharField(max_length=256)
+    """Сериализатор для жанра."""
     slug = serializers.RegexField(
         max_length=50,
         required=True,
@@ -28,26 +44,25 @@ class GenreSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        fields = (
-            'name',
-            'slug',
-        )
         model = Genre
+        fields = ('name', 'slug')
 
 
-class TitleSerializer(serializers.ModelSerializer):
-    """Сериализатор для Произведения."""
-    category = SlugRelatedField(
-        slug_field='slug',
+class TitleReadSerializer(serializers.ModelSerializer):
+    """Сериализатор для чтения произведения."""
+    category = CategorySerializer(
         read_only=True
     )
     genre = GenreSerializer(
         many=True,
         read_only=True
     )
-    name = serializers.CharField(max_length=256)
+    rating = serializers.IntegerField(
+        source='reviews__score__avg', read_only=True
+    )
 
     class Meta:
+        model = Title
         fields = (
             'id',
             'name',
@@ -57,15 +72,34 @@ class TitleSerializer(serializers.ModelSerializer):
             'genre',
             'category',
         )
-        model = Title
 
-    def validate_year(self, value):
-        if value > dt.datetime.now().year:
-            raise serializers.ValidationError(
-                {'year': 'Год выпуска произведения не может быть в будущем!'}
+
+class TitleWriteSerializer(serializers.ModelSerializer):
+    """Сериализатор для записи произведения."""
+    category = SlugRelatedField(
+        slug_field='slug',
+        queryset=Category.objects.all()
+    )
+    genre = SlugRelatedField(
+        many=True,
+        slug_field='slug',
+        queryset=Genre.objects.all()
+    )
+
+    class Meta:
+        model = Title
+        fields = (
+            'id',
+            'name',
+            'year',
+            'description',
+            'genre',
+            'category',
+        )
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """Сериализатор для частичного обновления информации о пользователе."""
     email = serializers.EmailField(max_length=254, required=True)
     username = serializers.RegexField(
         max_length=150,
@@ -87,6 +121,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserAdminSerializer(serializers.ModelSerializer):
+    """Сериализатор для регистрации пользователя админом."""
     class Meta:
         model = MyUser
         fields = [
@@ -100,6 +135,7 @@ class UserAdminSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
+    """Сериализатор для регистрации пользователя."""
     email = serializers.EmailField(max_length=254, required=True)
     username = serializers.RegexField(
         max_length=150,
@@ -126,30 +162,8 @@ class SignUpSerializer(serializers.ModelSerializer):
         return value
 
 
-class CategorySerializer(serializers.ModelSerializer):
-    """Сериализатор для Категории."""
-    name = serializers.CharField(max_length=256)
-    slug = serializers.RegexField(
-        max_length=50,
-        required=True,
-        regex=r'^[-a-zA-Z0-9_]+$',
-        validators=[
-            UniqueValidator(
-                queryset=Category.objects.all(),
-                message='Поле slug должно быть уникальным!'
-            )
-        ]
-    )
-
-    class Meta:
-        fields = (
-            'name',
-            'slug',
-        )
-        model = Category
-
-
 class TokenSerializer(serializers.ModelSerializer):
+    """Сериализатор для получения токена."""
     username = serializers.RegexField(
         max_length=150,
         required=True,
