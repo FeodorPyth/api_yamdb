@@ -12,11 +12,24 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from api_yamdb.settings import AUTHENTICATION_EMAIL
 from .filters import TitleViewSetFilter
-from .permissions import IsAdminOrReadOnly, IsAdminPermission
-from reviews.models import MyUser, Genre, Category, Title
+from .permissions import (
+    IsAdminOrReadOnly,
+    IsAdminPermission,
+    IsAuthorOrModerOrAdmin
+)
+from reviews.models import (
+    Category,
+    Genre,
+    Comment,
+    MyUser,
+    Review,
+    Title
+)
 from .serializers import (
     CategorySerializer,
+    CommentSerializer,
     GenreSerializer,
+    ReviewSerializer,
     SignUpSerializer,
     TitleReadSerializer,
     TitleWriteSerializer,
@@ -76,6 +89,71 @@ class TitleViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return TitleReadSerializer
         return TitleWriteSerializer
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    '''
+    Вьюсет для отзывов:
+    GET-запрос - получение списка отзывов,
+    по id получение конкретного отзыва;
+    POST-запрос - добавляет новый отзыв;
+    PATCH-запрос - частичное обновление отзыва;
+    DELETE-запрос - удаление отзыва.
+    '''
+    serializer_class = ReviewSerializer
+    permission_classes = (IsAuthorOrModerOrAdmin,)
+    http_method_names = ['get', 'post', 'delete', 'patch']
+
+    def get_queryset(self):
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        return title.reviews.all()
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        serializer.save(author=self.request.user, title=title)
+
+    def perform_update(self, serializer):
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        review_id = self.kwargs.get('pk')
+        author = Review.objects.get(pk=review_id).author
+        serializer.save(author=author, title_id=title.id)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    '''
+    Вьюсет для комментариев:
+    GET-запрос - получение списка комментариев,
+    по id получение конкретного комментария;
+    POST-запрос - добавляет новый комментарий;
+    PATCH-запрос - частичное обновление комментария;
+    DELETE-запрос - удаление комментария.
+    '''
+    serializer_class = CommentSerializer
+    permission_classes = (IsAuthorOrModerOrAdmin,)
+    http_method_names = ['get', 'post', 'delete', 'patch']
+
+    def get_queryset(self):
+        review = get_object_or_404(
+            Review,
+            pk=self.kwargs.get('review_id')
+        )
+        return review.comments.all()
+
+    def perform_create(self, serializer):
+        review = get_object_or_404(
+            Review,
+            pk=self.kwargs.get('review_id')
+        )
+        serializer.save(author=self.request.user, review=review)
+
+    def perform_update(self, serializer):
+        review = get_object_or_404(
+            Review,
+            pk=self.kwargs.get('review_id')
+        )
+        comment_id = self.kwargs.get('pk')
+        author = Comment.objects.get(pk=comment_id).author
+        serializer.save(author=author, review=review)
 
 
 class SignUpAPIView(views.APIView):

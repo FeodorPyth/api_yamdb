@@ -110,7 +110,18 @@ class GenreTitle(models.Model):
 
 class Review(models.Model):
     """Модель отзыва."""
-    SCORE_CHOICES = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    SCORE_CHOICES = (
+        (1, 'Оценка 1.'),
+        (2, 'Оценка 2.'),
+        (3, 'Оценка 3.'),
+        (4, 'Оценка 4.'),
+        (5, 'Оценка 5.'),
+        (6, 'Оценка 6.'),
+        (7, 'Оценка 7.'),
+        (8, 'Оценка 8.'),
+        (9, 'Оценка 9.'),
+        (10, 'Оценка 10.'),
+    )
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
@@ -144,6 +155,40 @@ class Review(models.Model):
         ordering = ('pub_date',)
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
+
+    def __str__(self):
+        return f'Отзыв от {self.author.username}, оценка: {self.score}.'
+
+
+class Comment(models.Model):
+    """Модель комментария."""
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Отзыв'
+    )
+    text = models.TextField(
+        verbose_name='Текст комментария'
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Автор комментария'
+    )
+    pub_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата публикации'
+    )
+
+    class Meta:
+        ordering = ('pub_date',)
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self):
+        return self.text[:10]
 
 
 class MyUser(AbstractUser):
