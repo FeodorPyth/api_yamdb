@@ -36,7 +36,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         for model, file_name in MODELS_FILENAME.items():
-            file_path = f'{BASE_DIR}\static\data\{file_name}'
+            file_path = f'{BASE_DIR}/static/data/{file_name}'
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     reader = csv.DictReader(file)
