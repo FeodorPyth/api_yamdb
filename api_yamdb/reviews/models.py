@@ -1,6 +1,5 @@
 import datetime as dt
 
-from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -66,13 +65,12 @@ class Title(models.Model):
         through='GenreTitle',
         related_name='genre_titles',
         verbose_name='Жанр',
-        null=True,
         blank=True,
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
-        related_name='category_titles',
+        related_name='titles',
         verbose_name='Категория',
         null=True,
         blank=True,
@@ -97,98 +95,17 @@ class GenreTitle(models.Model):
     """Модель связи произведения и жанра (многие ко многим)."""
     genre = models.ForeignKey(
         Genre,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='genre',
     )
     title = models.ForeignKey(
         Title,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='titles',
     )
 
     def __str__(self):
         return f'Произведение: {self.title}, Жанр: {self.genre}.'
-
-
-class Review(models.Model):
-    """Модель отзыва."""
-    SCORE_CHOICES = (
-        (1, 'Оценка 1.'),
-        (2, 'Оценка 2.'),
-        (3, 'Оценка 3.'),
-        (4, 'Оценка 4.'),
-        (5, 'Оценка 5.'),
-        (6, 'Оценка 6.'),
-        (7, 'Оценка 7.'),
-        (8, 'Оценка 8.'),
-        (9, 'Оценка 9.'),
-        (10, 'Оценка 10.'),
-    )
-    title = models.ForeignKey(
-        Title,
-        on_delete=models.CASCADE,
-        related_name='reviews',
-        verbose_name='Произведение'
-    )
-    text = models.TextField(
-        verbose_name='Текст отзыва'
-    )
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='reviews',
-        verbose_name='Автор отзыва'
-    )
-    score = models.PositiveSmallIntegerField(
-        choices=SCORE_CHOICES,
-        verbose_name='Оценка'
-    )
-    pub_date = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Дата публикации'
-    )
-
-    class Meta:
-        constraints = (
-            models.UniqueConstraint(
-                fields=['title', 'author'], name='unique_title_author'
-            ),
-        )
-        ordering = ('pub_date',)
-        verbose_name = 'Отзыв'
-        verbose_name_plural = 'Отзывы'
-
-    def __str__(self):
-        return f'Отзыв от {self.author.username}, оценка: {self.score}.'
-
-
-class Comment(models.Model):
-    """Модель комментария."""
-    review = models.ForeignKey(
-        Review,
-        on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name='Отзыв'
-    )
-    text = models.TextField(
-        verbose_name='Текст комментария'
-    )
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name='Автор комментария'
-    )
-    pub_date = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Дата публикации'
-    )
-
-    class Meta:
-        ordering = ('pub_date',)
-        verbose_name = 'Комментарий'
-        verbose_name_plural = 'Комментарии'
-
-    def __str__(self):
-        return self.text[:10]
 
 
 class MyUser(AbstractUser):
@@ -247,3 +164,86 @@ class MyUser(AbstractUser):
                 name='unique_email_and_username'
             )
         ]
+
+
+class Review(models.Model):
+    """Модель отзыва."""
+    SCORE_CHOICES = (
+        (1, 'Оценка 1.'),
+        (2, 'Оценка 2.'),
+        (3, 'Оценка 3.'),
+        (4, 'Оценка 4.'),
+        (5, 'Оценка 5.'),
+        (6, 'Оценка 6.'),
+        (7, 'Оценка 7.'),
+        (8, 'Оценка 8.'),
+        (9, 'Оценка 9.'),
+        (10, 'Оценка 10.'),
+    )
+    title = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Произведение'
+    )
+    text = models.TextField(
+        verbose_name='Текст отзыва'
+    )
+    author = models.ForeignKey(
+        MyUser,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Автор отзыва'
+    )
+    score = models.PositiveSmallIntegerField(
+        choices=SCORE_CHOICES,
+        verbose_name='Оценка'
+    )
+    pub_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата публикации'
+    )
+
+    class Meta:
+        constraints = (
+            models.UniqueConstraint(
+                fields=['title', 'author'], name='unique_title_author'
+            ),
+        )
+        ordering = ('pub_date',)
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
+
+    def __str__(self):
+        return f'Отзыв от {self.author.username}, оценка: {self.score}.'
+
+
+class Comment(models.Model):
+    """Модель комментария."""
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Отзыв'
+    )
+    text = models.TextField(
+        verbose_name='Текст комментария'
+    )
+    author = models.ForeignKey(
+        MyUser,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Автор комментария'
+    )
+    pub_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата публикации'
+    )
+
+    class Meta:
+        ordering = ('pub_date',)
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self):
+        return self.text[:10]
