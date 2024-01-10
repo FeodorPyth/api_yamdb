@@ -136,30 +136,6 @@ class ReviewSerializer(serializers.ModelSerializer):
                 'Нельзя повторно комментировать отзыв!')
         return data
 
-    # def validate(self, data):
-    #     if Review.objects.filter(
-    #         author=self.context['request'].user,
-    #         title_id=self.context['view'].kwargs.get('title_id')
-    #     ).exists() and self.context['request'].method == 'POST':
-    #         raise serializers.ValidationError(
-    #             'Нельзя оставить два отзыва на одно произведение.')
-    #     return data
-
-    # def validate(self, attrs):
-    #     title_id = (
-    #         self.context['request'].parser_context['kwargs'].get('title_id')
-    #     )
-    #     title = get_object_or_404(Title, pk=title_id)
-    #     user = self.context['request'].user
-    #     if (
-    #         self.context['request'].method == 'POST'
-    #         and Review.objects.filter(author=user, title=title).exists()
-    #     ):
-    #         raise ValidationError(
-    #             'Возможен только один отзыв на произведение.'
-    #         )
-    #     return attrs
-
 
 class CommentSerializer(serializers.ModelSerializer):
     """Сериализатор для комментариев к отзывам."""

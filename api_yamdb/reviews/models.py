@@ -1,59 +1,67 @@
-import datetime as dt
-
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
+from api_yamdb.settings import (
+    MAX_LENGTH_SLUG,
+    MAX_LENGTH_BIO,
+    MAX_LENGTH_EMAIL,
+    MAX_LENGTH_NAME,
+    MAX_LENGTH_USERNAME
+)
+from .validators import validate_username, validate_year
 
-class Category(models.Model):
-    """Модель категории произведения."""
+
+class BaseModel(models.Model):
+    """
+    Абстрактная модель.
+    Добавляет имя и слаг с ограничениями по знакам.
+    """
     name = models.CharField(
-        'Название категории',
-        max_length=256
+        'Название',
+        max_length=MAX_LENGTH_NAME
     )
     slug = models.SlugField(
-        'Слаг категории',
-        max_length=50,
+        'Слаг',
+        max_length=MAX_LENGTH_SLUG,
         unique=True
     )
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return self.slug
+
+
+class Category(BaseModel):
+    """Модель категории произведения."""
 
     class Meta:
         ordering = ('name',)
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
-    def __str__(self):
-        return self.slug
 
-
-class Genre(models.Model):
+class Genre(BaseModel):
     """Модель жанра произведения."""
-    name = models.CharField(
-        'Название жанра',
-        max_length=256
-    )
-    slug = models.SlugField(
-        'Слаг жанра',
-        max_length=50,
-        unique=True
-    )
 
     class Meta:
         ordering = ('name',)
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
-    def __str__(self):
-        return self.slug
-
 
 class Title(models.Model):
     """Модель произведения."""
     name = models.CharField(
         'Название произведения',
-        max_length=256
+        max_length=MAX_LENGTH_NAME
     )
-    year = models.IntegerField(
-        'Год выпуска'
+    year = models.PositiveIntegerField(
+        'Год выпуска',
+        validators=[validate_year],
+        help_text='Год выпуска должен быть не больше текущего.'
     )
     description = models.TextField(
         'Описание произведения',
@@ -80,12 +88,6 @@ class Title(models.Model):
         ordering = ('name',)
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
-        constraints = [
-            models.CheckConstraint(
-                check=models.Q(year__lte=dt.datetime.now().year),
-                name='check_date'
-            ),
-        ]
 
     def __str__(self):
         return self.name
@@ -119,7 +121,7 @@ class MyUser(AbstractUser):
         (ADMIN, 'admin')
     )
     bio = models.CharField(
-        max_length=1024,
+        max_length=MAX_LENGTH_BIO,
         blank=True,
     )
     confirmation_code = models.CharField(
@@ -128,18 +130,22 @@ class MyUser(AbstractUser):
         null=True
     )
     email = models.EmailField(
-        max_length=254,
+        max_length=MAX_LENGTH_EMAIL,
         unique=True
     )
     role = models.CharField(
-        max_length=15,
+        max_length=len(max(
+            [value for role, value in dict(ROLE_CHOICES).items()], key=len
+        )),
         verbose_name='Роль',
         choices=ROLE_CHOICES,
         default=USER
     )
     username = models.SlugField(
-        max_length=150,
-        unique=True
+        max_length=MAX_LENGTH_USERNAME,
+        unique=True,
+        validators=[validate_username],
+        help_text='Имя пользователя не должно быть "me".'
     )
 
     @property
@@ -155,7 +161,7 @@ class MyUser(AbstractUser):
         return self.role == self.ADMIN
 
     class Meta:
-        ordering = ('id',)
+        ordering = ('role', 'username',)
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
         constraints = [
@@ -168,18 +174,6 @@ class MyUser(AbstractUser):
 
 class Review(models.Model):
     """Модель отзыва."""
-    SCORE_CHOICES = (
-        (1, 'Оценка 1.'),
-        (2, 'Оценка 2.'),
-        (3, 'Оценка 3.'),
-        (4, 'Оценка 4.'),
-        (5, 'Оценка 5.'),
-        (6, 'Оценка 6.'),
-        (7, 'Оценка 7.'),
-        (8, 'Оценка 8.'),
-        (9, 'Оценка 9.'),
-        (10, 'Оценка 10.'),
-    )
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
@@ -196,7 +190,10 @@ class Review(models.Model):
         verbose_name='Автор отзыва'
     )
     score = models.PositiveSmallIntegerField(
-        choices=SCORE_CHOICES,
+        validators=[
+            MinValueValidator(1, message='Оценка не может быть меньше 1.'),
+            MaxValueValidator(10, message='Оценка не может быть больше 10.')
+        ],
         verbose_name='Оценка'
     )
     pub_date = models.DateTimeField(
