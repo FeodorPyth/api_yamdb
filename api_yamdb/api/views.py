@@ -2,6 +2,7 @@ import random
 
 from django.core.mail import send_mail
 from django.db import IntegrityError
+from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, status, views, viewsets
@@ -37,49 +38,44 @@ from .serializers import (
     UserAdminSerializer,
     UserSerializer,
 )
-from .viewsets import CreateListDestroyViewSet
+from .viewsets import BaseCategoryGenreViewset
 
 
-class CategoryViewSet(CreateListDestroyViewSet):
-    '''
-    Вьюсет для категорий:
+class CategoryViewSet(BaseCategoryGenreViewset):
+    """Вьюсет для категорий.
+    
+    Доступные запросы:
     GET-запрос - получение списка категорий;
     POST-запрос - добавляет новую категорию;
     DELETE-запрос - удаление категории.
-    '''
+    """
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
 
 
-class GenreViewSet(CreateListDestroyViewSet):
-    '''
-    Вьюсет для жанров:
+class GenreViewSet(BaseCategoryGenreViewset):
+    """Вьюсет для жанров.
+    
+    Доступные запросы:
     GET-запрос - получение списка жанров;
     POST-запрос - добавляет новый жанр;
     DELETE-запрос - удаление жанра.
-    '''
+    """
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    '''
-    Вьюсет для произведений:
+    """Вьюсет для произведений.
+    
+    Доступные запросы:
     GET-запрос - получение списка произведений,
     по id получение конкретного произведения;
     POST-запрос - добавляет новое произведение;
     PATCH-запрос - частичное обновление произведения;
     DELETE-запрос - удаление произведения.
-    '''
-    queryset = Title.objects.all()
+    """
+    queryset = Title.objects.all().annotate(Avg('reviews__score'))
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleViewSetFilter
@@ -92,14 +88,15 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    '''
-    Вьюсет для отзывов:
+    """Вьюсет для отзывов.
+
+    Доступные запросы:
     GET-запрос - получение списка отзывов,
     по id получение конкретного отзыва;
     POST-запрос - добавляет новый отзыв;
     PATCH-запрос - частичное обновление отзыва;
     DELETE-запрос - удаление отзыва.
-    '''
+    """
     serializer_class = ReviewSerializer
     permission_classes = (IsAuthorOrModerOrAdmin,)
     http_method_names = ['get', 'post', 'delete', 'patch']
@@ -120,14 +117,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    '''
-    Вьюсет для комментариев:
+    """Вьюсет для комментариев.
+    
+    Доступные запросы:
     GET-запрос - получение списка комментариев,
     по id получение конкретного комментария;
     POST-запрос - добавляет новый комментарий;
     PATCH-запрос - частичное обновление комментария;
     DELETE-запрос - удаление комментария.
-    '''
+    """
     serializer_class = CommentSerializer
     permission_classes = (IsAuthorOrModerOrAdmin,)
     http_method_names = ['get', 'post', 'delete', 'patch']
@@ -157,11 +155,12 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 
 class SignUpAPIView(views.APIView):
-    '''
-    Вьюсет для получения кода подтверждения:
+    """Вьюсет для получения кода подтверждения.
+    
+    Доступные запросы:
     POST-запрос с полями username, email
     генерирует email с confirmation_code.
-    '''
+    """
     permission_classes = (AllowAny,)
     serializer_class = SignUpSerializer
     queryset = MyUser.objects.all()
@@ -203,11 +202,12 @@ class SignUpAPIView(views.APIView):
 
 
 class TokenApiView(views.APIView):
-    '''
-    Вьюсет для получения токена:
+    """Вьюсет для получения токена.
+    
+    Доступные запросы:
     POST-запрос с полями username, confirmation_code
     генерирует jwt-token.
-    '''
+    """
     serializer_class = TokenSerializer
 
     def post(self, request):
@@ -229,13 +229,14 @@ class TokenApiView(views.APIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    '''
-    Вьюсет для users для администраторов:
+    """Вьюсет для users для администраторов.
+    
+    Доступные запросы:
     GET-запрос - получение списка пользователей;
     POST-запрос - добавляет нового пользователя;
     GET, PATCH, DELETE-запрос - получение,
     частичное изменение, удаление пользователя по его username.
-    '''
+    """
     queryset = MyUser.objects.all()
     serializer_class = UserAdminSerializer
     permission_classes = (IsAdminPermission,)
