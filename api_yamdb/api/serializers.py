@@ -1,7 +1,14 @@
-from django.db.models import Avg
+from django.core.validators import RegexValidator
 from rest_framework import serializers
 from rest_framework.relations import SlugRelatedField
 from rest_framework.validators import UniqueValidator
+
+
+from api_yamdb.settings import (
+    MAX_LENGTH_SLUG,
+    MAX_LENGTH_EMAIL,
+    MAX_LENGTH_USERNAME
+)
 
 from reviews.models import (
     Category,
@@ -12,13 +19,17 @@ from reviews.models import (
     Title,
 )
 
+from reviews.validators import (
+    validate_username,
+    validate_year,
+)
+
 
 class CategorySerializer(serializers.ModelSerializer):
     """Сериализатор для категории."""
-    slug = serializers.RegexField(
-        max_length=50,
+    slug = serializers.SlugField(
+        max_length=MAX_LENGTH_SLUG,
         required=True,
-        regex=r'^[-a-zA-Z0-9_]+$',
         validators=[
             UniqueValidator(
                 queryset=Category.objects.all(),
@@ -29,15 +40,14 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('name', 'slug')
+        exclude = ('id',)
 
 
 class GenreSerializer(serializers.ModelSerializer):
     """Сериализатор для жанра."""
-    slug = serializers.RegexField(
-        max_length=50,
+    slug = serializers.SlugField(
+        max_length=MAX_LENGTH_SLUG,
         required=True,
-        regex=r'^[-a-zA-Z0-9_]+$',
         validators=[
             UniqueValidator(
                 queryset=Genre.objects.all(),
@@ -48,7 +58,7 @@ class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
-        fields = ('name', 'slug')
+        exclude = ('id',)
 
 
 class TitleReadSerializer(serializers.ModelSerializer):
@@ -60,7 +70,10 @@ class TitleReadSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True
     )
-    rating = serializers.SerializerMethodField()
+    rating = serializers.IntegerField(
+        source='reviews__score__avg',
+        read_only=True
+    )
 
     class Meta:
         model = Title
@@ -74,14 +87,6 @@ class TitleReadSerializer(serializers.ModelSerializer):
             'category',
         )
 
-    def get_rating(self, obj):
-        reviews = obj.reviews.all()
-        if reviews.exists():
-            average_rating = reviews.aggregate(Avg('score'))['score__avg']
-            return round(average_rating, 0)
-        else:
-            return None
-
 
 class TitleWriteSerializer(serializers.ModelSerializer):
     """Сериализатор для записи произведения."""
@@ -93,6 +98,9 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         many=True,
         slug_field='slug',
         queryset=Genre.objects.all()
+    )
+    year = serializers.IntegerField(
+        validators=[validate_year,]
     )
 
     class Meta:
@@ -108,11 +116,13 @@ class TitleWriteSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(
-        slug_field='username', read_only=True
+    author = SlugRelatedField(
+        slug_field='username',
+        read_only=True
     )
-    title = serializers.SlugRelatedField(
-        slug_field='name', read_only=True
+    title = SlugRelatedField(
+        slug_field='name',
+        read_only=True
     )
 
     class Meta:
@@ -139,8 +149,9 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     """Сериализатор для комментариев к отзывам."""
-    author = serializers.SlugRelatedField(
-        slug_field='username', read_only=True
+    author = SlugRelatedField(
+        slug_field='username',
+        read_only=True
     )
 
     class Meta:
@@ -150,11 +161,19 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для частичного обновления информации о пользователе."""
-    email = serializers.EmailField(max_length=254, required=True)
-    username = serializers.RegexField(
-        max_length=150,
+    email = serializers.EmailField(
+        max_length=MAX_LENGTH_EMAIL,
         required=True,
-        regex=r'^[\w.@+-]+\Z',
+    )
+    username = serializers.CharField(
+        max_length=MAX_LENGTH_USERNAME,
+        required=True,
+        validators=[validate_username,
+                    RegexValidator(
+                        regex=r'^[\w.@+-]+\Z',
+                        message='Поле username имеет недопустимое значение'
+                    )
+        ]
     )
 
     class Meta:
@@ -186,11 +205,19 @@ class UserAdminSerializer(serializers.ModelSerializer):
 
 class SignUpSerializer(serializers.ModelSerializer):
     """Сериализатор для регистрации пользователя."""
-    email = serializers.EmailField(max_length=254, required=True)
-    username = serializers.RegexField(
-        max_length=150,
+    email = serializers.EmailField(
+        max_length=MAX_LENGTH_EMAIL,
+        required=True
+    )
+    username = serializers.CharField(
+        max_length=MAX_LENGTH_USERNAME,
         required=True,
-        regex=r'^[\w.@+-]+\Z',
+        validators=[validate_username,
+                    RegexValidator(
+                        regex=r'^[\w.@+-]+\Z',
+                        message='Поле username имеет недопустимое значение'
+                    )
+        ]
     )
 
     class Meta:
@@ -204,20 +231,18 @@ class SignUpSerializer(serializers.ModelSerializer):
             'role'
         ]
 
-    def validate_username(self, value):
-        if 'me' == value:
-            raise serializers.ValidationError(
-                {'username': 'Имя "me" для пользователя запрещено!'}
-            )
-        return value
-
 
 class TokenSerializer(serializers.ModelSerializer):
     """Сериализатор для получения токена."""
-    username = serializers.RegexField(
-        max_length=150,
+    username = serializers.CharField(
+        max_length=MAX_LENGTH_USERNAME,
         required=True,
-        regex=r'^[\w.@+-]+\Z',
+        validators=[validate_username,
+                    RegexValidator(
+                        regex=r'^[\w.@+-]+\Z',
+                        message='Поле username имеет недопустимое значение'
+                    )
+        ]
     )
     confirmation_code = serializers.CharField(max_length=5, required=True)
 
