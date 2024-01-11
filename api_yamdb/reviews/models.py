@@ -3,10 +3,11 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 from api_yamdb.settings import (
-    MAX_LENGTH_SLUG,
     MAX_LENGTH_BIO,
+    MAX_LENGTH_COMMENT,
     MAX_LENGTH_EMAIL,
     MAX_LENGTH_NAME,
+    MAX_LENGTH_SLUG,
     MAX_LENGTH_USERNAME
 )
 from .validators import validate_username, validate_year
@@ -178,7 +179,6 @@ class Review(models.Model):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        related_name='reviews',
         verbose_name='Произведение'
     )
     text = models.TextField(
@@ -187,7 +187,6 @@ class Review(models.Model):
     author = models.ForeignKey(
         MyUser,
         on_delete=models.CASCADE,
-        related_name='reviews',
         verbose_name='Автор отзыва'
     )
     score = models.PositiveSmallIntegerField(
@@ -211,6 +210,7 @@ class Review(models.Model):
         ordering = ('pub_date',)
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
+        default_related_name = 'reviews'
 
     def __str__(self):
         return f'Отзыв от {self.author.username}, оценка: {self.score}.'
@@ -244,4 +244,4 @@ class Comment(models.Model):
         verbose_name_plural = 'Комментарии'
 
     def __str__(self):
-        return self.text[:10]
+        return self.text[:MAX_LENGTH_COMMENT]

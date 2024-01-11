@@ -1,6 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.utils.timezone import now
 
+from api_yamdb.settings import URL_PATH_NAME
+
 
 def validate_year(value):
     """
@@ -17,7 +19,7 @@ def validate_username(value):
     Валидация поля username.
     Значение не должно быть равно 'me'.
     """
-    if value == 'me':
-        raise ValidationError('Нельзя использовать "me"'
+    if value == URL_PATH_NAME:
+        raise ValidationError(f'Нельзя использовать {URL_PATH_NAME}'
                               ' в качестве имени пользователя.')
     return value

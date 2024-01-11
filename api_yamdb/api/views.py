@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, status, views, viewsets
+from rest_framework import filters, mixins, status, views, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -21,7 +21,6 @@ from .permissions import (
 from reviews.models import (
     Category,
     Genre,
-    Comment,
     MyUser,
     Review,
     Title
@@ -38,7 +37,19 @@ from .serializers import (
     UserAdminSerializer,
     UserSerializer,
 )
-from .viewsets import BaseCategoryGenreViewset
+
+
+class BaseCategoryGenreViewset(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet
+):
+    """Базовый вьюсет для Категорий и Жанров."""
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
 
 
 class CategoryViewSet(BaseCategoryGenreViewset):
@@ -105,12 +116,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
         serializer.save(author=self.request.user, title=title)
 
-    def perform_update(self, serializer):
-        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        review_id = self.kwargs.get('pk')
-        author = Review.objects.get(pk=review_id).author
-        serializer.save(author=author, title_id=title.id)
-
 
 class CommentViewSet(viewsets.ModelViewSet):
     """
@@ -140,16 +145,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             title_id=self.kwargs.get('title_id')
         )
         serializer.save(author=self.request.user, review=review)
-
-    def perform_update(self, serializer):
-        review = get_object_or_404(
-            Review,
-            pk=self.kwargs.get('review_id'),
-            title_id=self.kwargs.get('title_id')
-        )
-        comment_id = self.kwargs.get('pk')
-        author = Comment.objects.get(pk=comment_id).author
-        serializer.save(author=author, review=review)
 
 
 class SignUpAPIView(views.APIView):
