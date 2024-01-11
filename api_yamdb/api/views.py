@@ -11,11 +11,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api_yamdb.settings import AUTHENTICATION_EMAIL
+from api_yamdb.settings import AUTHENTICATION_EMAIL, URL_PATH_NAME
 from .filters import TitleViewSetFilter
 from .permissions import (
     IsAdminOrReadOnly,
-    IsAdminPermission,
+    IsAdmin,
     IsAuthorOrModerOrAdmin
 )
 from reviews.models import (
@@ -42,11 +42,10 @@ from .viewsets import BaseCategoryGenreViewset
 
 
 class CategoryViewSet(BaseCategoryGenreViewset):
-    """Вьюсет для категорий.
-    
-    Доступные запросы:
-    GET-запрос - получение списка категорий;
-    POST-запрос - добавляет новую категорию;
+    """
+    Вьюсет для категорий.
+    GET-запрос - получение списка категорий.
+    POST-запрос - добавляет новую категорию.
     DELETE-запрос - удаление категории.
     """
     queryset = Category.objects.all()
@@ -54,11 +53,10 @@ class CategoryViewSet(BaseCategoryGenreViewset):
 
 
 class GenreViewSet(BaseCategoryGenreViewset):
-    """Вьюсет для жанров.
-    
-    Доступные запросы:
-    GET-запрос - получение списка жанров;
-    POST-запрос - добавляет новый жанр;
+    """
+    Вьюсет для жанров.
+    GET-запрос - получение списка жанров.
+    POST-запрос - добавляет новый жанр.
     DELETE-запрос - удаление жанра.
     """
     queryset = Genre.objects.all()
@@ -66,13 +64,12 @@ class GenreViewSet(BaseCategoryGenreViewset):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    """Вьюсет для произведений.
-    
-    Доступные запросы:
-    GET-запрос - получение списка произведений,
-    по id получение конкретного произведения;
-    POST-запрос - добавляет новое произведение;
-    PATCH-запрос - частичное обновление произведения;
+    """
+    Вьюсет для произведений.
+    GET-запрос - получение списка произведений.
+    GET-запрос по id получение конкретного произведения.
+    POST-запрос - добавляет новое произведение.
+    PATCH-запрос - частичное обновление произведения.
     DELETE-запрос - удаление произведения.
     """
     queryset = Title.objects.all().annotate(Avg('reviews__score'))
@@ -88,13 +85,12 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    """Вьюсет для отзывов.
-
-    Доступные запросы:
-    GET-запрос - получение списка отзывов,
-    по id получение конкретного отзыва;
-    POST-запрос - добавляет новый отзыв;
-    PATCH-запрос - частичное обновление отзыва;
+    """
+    Вьюсет для отзывов.
+    GET-запрос - получение списка отзывов.
+    GET-запрос по id получение конкретного отзыва.
+    POST-запрос - добавляет новый отзыв.
+    PATCH-запрос - частичное обновление отзыва.
     DELETE-запрос - удаление отзыва.
     """
     serializer_class = ReviewSerializer
@@ -117,13 +113,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    """Вьюсет для комментариев.
-    
-    Доступные запросы:
-    GET-запрос - получение списка комментариев,
-    по id получение конкретного комментария;
-    POST-запрос - добавляет новый комментарий;
-    PATCH-запрос - частичное обновление комментария;
+    """
+    Вьюсет для комментариев.
+    GET-запрос - получение списка комментариев.
+    GET-запрос по id получение конкретного комментария.
+    POST-запрос - добавляет новый комментарий.
+    PATCH-запрос - частичное обновление комментария.
     DELETE-запрос - удаление комментария.
     """
     serializer_class = CommentSerializer
@@ -133,21 +128,24 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         review = get_object_or_404(
             Review,
-            pk=self.kwargs.get('review_id')
+            pk=self.kwargs.get('review_id'),
+            title_id=self.kwargs.get('title_id')
         )
         return review.comments.all()
 
     def perform_create(self, serializer):
         review = get_object_or_404(
             Review,
-            pk=self.kwargs.get('review_id')
+            pk=self.kwargs.get('review_id'),
+            title_id=self.kwargs.get('title_id')
         )
         serializer.save(author=self.request.user, review=review)
 
     def perform_update(self, serializer):
         review = get_object_or_404(
             Review,
-            pk=self.kwargs.get('review_id')
+            pk=self.kwargs.get('review_id'),
+            title_id=self.kwargs.get('title_id')
         )
         comment_id = self.kwargs.get('pk')
         author = Comment.objects.get(pk=comment_id).author
@@ -155,11 +153,9 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 
 class SignUpAPIView(views.APIView):
-    """Вьюсет для получения кода подтверждения.
-    
-    Доступные запросы:
-    POST-запрос с полями username, email
-    генерирует email с confirmation_code.
+    """
+    Вьюсет для получения кода подтверждения.
+    POST-запрос генерирует email с confirmation_code.
     """
     permission_classes = (AllowAny,)
     serializer_class = SignUpSerializer
@@ -167,7 +163,7 @@ class SignUpAPIView(views.APIView):
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             username = serializer.data['username']
             email = serializer.data['email']
             try:
@@ -187,9 +183,8 @@ class SignUpAPIView(views.APIView):
                 confirmation_code=confirmation_code
             )
             send_mail(
-                subject='Confirmation code',
-                message=f'''Hello, your code
-                is {confirmation_code}!''',
+                subject='Код подтверждения',
+                message=f'Ваш код: {confirmation_code}!',
                 from_email=AUTHENTICATION_EMAIL,
                 recipient_list=[serializer.data['email']],
                 fail_silently=False,
@@ -202,11 +197,9 @@ class SignUpAPIView(views.APIView):
 
 
 class TokenApiView(views.APIView):
-    """Вьюсет для получения токена.
-    
-    Доступные запросы:
-    POST-запрос с полями username, confirmation_code
-    генерирует jwt-token.
+    """
+    Вьюсет для получения токена.
+    POST-запрос генерирует jwt-token.
     """
     serializer_class = TokenSerializer
 
@@ -229,17 +222,19 @@ class TokenApiView(views.APIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    """Вьюсет для users для администраторов.
-    
-    Доступные запросы:
-    GET-запрос - получение списка пользователей;
-    POST-запрос - добавляет нового пользователя;
-    GET, PATCH, DELETE-запрос - получение,
-    частичное изменение, удаление пользователя по его username.
+    """
+    Вьюсет для users для администраторов.
+    GET-запрос - получение списка пользователей.
+    POST-запрос - добавляет нового пользователя.
+    GET-запрос по username - получение конкретного пользователя.
+    PATCH-запрос по username - изменение данных конкретного пользователя.
+    DELETE-запрос по username - удаление конкретного пользователя.
+    GET-запрос по me - получение данных своей учетки.
+    PATCH=запрос по Me - изменение данных своей учетки.
     """
     queryset = MyUser.objects.all()
     serializer_class = UserAdminSerializer
-    permission_classes = (IsAdminPermission,)
+    permission_classes = (IsAdmin,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
     lookup_field = 'username'
@@ -247,11 +242,14 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False,
             methods=['get', 'patch'],
-            url_path='me',
-            url_name='me',
+            url_path=URL_PATH_NAME,
+            url_name=URL_PATH_NAME,
             permission_classes=(IsAuthenticated,),
             serializer_class=UserSerializer)
     def users_me(self, request):
+        if request.method == 'GET':
+            serializer = self.get_serializer(request.user, many=False)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         if request.method == 'PATCH':
             serializer = self.get_serializer(
                 request.user,
@@ -265,5 +263,3 @@ class UserViewSet(viewsets.ModelViewSet):
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
             )
-        serializer = self.get_serializer(request.user, many=False)
-        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -172,8 +172,7 @@ class UserSerializer(serializers.ModelSerializer):
                     RegexValidator(
                         regex=r'^[\w.@+-]+\Z',
                         message='Поле username имеет недопустимое значение'
-                    )
-        ]
+                    )]
     )
 
     class Meta:
@@ -207,7 +206,7 @@ class SignUpSerializer(serializers.ModelSerializer):
     """Сериализатор для регистрации пользователя."""
     email = serializers.EmailField(
         max_length=MAX_LENGTH_EMAIL,
-        required=True
+        required=True,
     )
     username = serializers.CharField(
         max_length=MAX_LENGTH_USERNAME,
@@ -216,8 +215,7 @@ class SignUpSerializer(serializers.ModelSerializer):
                     RegexValidator(
                         regex=r'^[\w.@+-]+\Z',
                         message='Поле username имеет недопустимое значение'
-                    )
-        ]
+                    )]
     )
 
     class Meta:
@@ -241,8 +239,7 @@ class TokenSerializer(serializers.ModelSerializer):
                     RegexValidator(
                         regex=r'^[\w.@+-]+\Z',
                         message='Поле username имеет недопустимое значение'
-                    )
-        ]
+                    )]
     )
     confirmation_code = serializers.CharField(max_length=5, required=True)
 

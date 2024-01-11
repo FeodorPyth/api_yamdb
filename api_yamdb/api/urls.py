@@ -44,8 +44,12 @@ router_v1.register(
     basename='user'
 )
 
+auth_urls = [
+    path('signup/', SignUpAPIView.as_view()),
+    path('token/', TokenApiView.as_view()),
+]
+
 urlpatterns = [
     path('v1/', include(router_v1.urls)),
-    path('v1/auth/signup/', SignUpAPIView.as_view()),
-    path('v1/auth/token/', TokenApiView.as_view()),
+    path('v1/auth/', include(auth_urls)),
 ]

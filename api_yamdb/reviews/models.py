@@ -26,7 +26,6 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
-        ordering = ('name',)
 
     def __str__(self):
         return self.slug
@@ -36,6 +35,7 @@ class Category(BaseModel):
     """Модель категории произведения."""
 
     class Meta:
+        ordering = ('name',)
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
@@ -44,6 +44,7 @@ class Genre(BaseModel):
     """Модель жанра произведения."""
 
     class Meta:
+        ordering = ('name',)
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
@@ -85,7 +86,7 @@ class Title(models.Model):
     )
 
     class Meta:
-        ordering = ('name',)
+        ordering = ('year', 'name',)
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
 

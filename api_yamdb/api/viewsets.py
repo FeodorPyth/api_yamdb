@@ -9,7 +9,7 @@ class BaseCategoryGenreViewset(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet
 ):
-    """Базовый вюсет для Категорий и Жанров."""
+    """Базовый вьюсет для Категорий и Жанров."""
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
