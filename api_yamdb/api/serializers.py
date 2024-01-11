@@ -100,7 +100,7 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         queryset=Genre.objects.all()
     )
     year = serializers.IntegerField(
-        validators=[validate_year,]
+        validators=[validate_year]
     )
 
     class Meta:
