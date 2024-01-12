@@ -1,4 +1,5 @@
 from django.core.validators import RegexValidator
+from django.db import IntegrityError
 from rest_framework import serializers
 from rest_framework.relations import SlugRelatedField
 from rest_framework.validators import UniqueValidator
@@ -20,7 +21,7 @@ from reviews.models import (
 )
 
 from reviews.validators import (
-    validate_username,
+    validate_username_me,
     validate_year,
 )
 
@@ -160,7 +161,7 @@ class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         max_length=MAX_LENGTH_USERNAME,
         required=True,
-        validators=[validate_username,
+        validators=[validate_username_me,
                     RegexValidator(
                         regex=r'^[\w.@+-]+\Z',
                         message='Поле username имеет недопустимое значение'
@@ -203,7 +204,7 @@ class SignUpSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         max_length=MAX_LENGTH_USERNAME,
         required=True,
-        validators=[validate_username,
+        validators=[validate_username_me,
                     RegexValidator(
                         regex=r'^[\w.@+-]+\Z',
                         message='Поле username имеет недопустимое значение'
@@ -221,13 +222,25 @@ class SignUpSerializer(serializers.ModelSerializer):
             'role'
         ]
 
+    def validate(self, data):
+        try:
+            MyUser.objects.get_or_create(
+                username=data.get('username'),
+                email=data.get('email')
+            )
+        except IntegrityError:
+            raise serializers.ValidationError(
+                'Пользователь с таким username/email уже существует'
+            )
+        return data
+
 
 class TokenSerializer(serializers.ModelSerializer):
     """Сериализатор для получения токена."""
     username = serializers.CharField(
         max_length=MAX_LENGTH_USERNAME,
         required=True,
-        validators=[validate_username,
+        validators=[validate_username_me,
                     RegexValidator(
                         regex=r'^[\w.@+-]+\Z',
                         message='Поле username имеет недопустимое значение'

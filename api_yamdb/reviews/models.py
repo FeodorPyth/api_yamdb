@@ -10,7 +10,7 @@ from api_yamdb.settings import (
     MAX_LENGTH_SLUG,
     MAX_LENGTH_USERNAME
 )
-from .validators import validate_username, validate_year
+from .validators import validate_username_me, validate_year
 
 
 class BaseModel(models.Model):
@@ -27,6 +27,7 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ('name',)
 
     def __str__(self):
         return self.slug
@@ -36,7 +37,6 @@ class Category(BaseModel):
     """Модель категории произведения."""
 
     class Meta:
-        ordering = ('name',)
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
@@ -45,7 +45,6 @@ class Genre(BaseModel):
     """Модель жанра произведения."""
 
     class Meta:
-        ordering = ('name',)
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
@@ -146,7 +145,7 @@ class MyUser(AbstractUser):
     username = models.SlugField(
         max_length=MAX_LENGTH_USERNAME,
         unique=True,
-        validators=[validate_username],
+        validators=[validate_username_me],
         help_text='Имя пользователя не должно быть "me".'
     )
 

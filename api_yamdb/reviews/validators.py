@@ -14,7 +14,7 @@ def validate_year(value):
     return value
 
 
-def validate_username(value):
+def validate_username_me(value):
     """
     Валидация поля username.
     Значение не должно быть равно 'me'.
