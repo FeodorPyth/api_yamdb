@@ -1,7 +1,6 @@
 import random
 
 from django.core.mail import send_mail
-from django.db import IntegrityError
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
@@ -158,23 +157,17 @@ class SignUpAPIView(views.APIView):
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
             username = serializer.data['username']
             email = serializer.data['email']
-            try:
-                user, created = MyUser.objects.get_or_create(
-                    username=username,
-                    email=email,
-                )
-            except IntegrityError:
-                return Response(
-                    'Такой логин или email уже существуют',
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            MyUser.objects.get_or_create(
+                username=username,
+                email=email,
+            )
             confirmation_code = ''.join(
                 [str(random.randint(0, 9)) for _ in range(5)]
             )
-            MyUser.objects.filter(username=username).update(
+            MyUser.objects.filter(username=username, email=email,).update(
                 confirmation_code=confirmation_code
             )
             send_mail(
@@ -200,7 +193,7 @@ class TokenApiView(views.APIView):
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
             user = get_object_or_404(
                 MyUser,
                 username=serializer.data['username']
@@ -245,13 +238,13 @@ class UserViewSet(viewsets.ModelViewSet):
         if request.method == 'GET':
             serializer = self.get_serializer(request.user, many=False)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        if request.method == 'PATCH':
+        else:
             serializer = self.get_serializer(
                 request.user,
                 data=request.data,
                 partial=True
             )
-            if serializer.is_valid(raise_exception=True):
+            if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response(
