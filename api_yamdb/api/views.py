@@ -218,7 +218,7 @@ class UserViewSet(viewsets.ModelViewSet):
     PATCH-запрос по username - изменение данных конкретного пользователя.
     DELETE-запрос по username - удаление конкретного пользователя.
     GET-запрос по me - получение данных своей учетки.
-    PATCH=запрос по Me - изменение данных своей учетки.
+    PATCH-запрос по me - изменение данных своей учетки.
     """
     queryset = MyUser.objects.all()
     serializer_class = UserAdminSerializer
