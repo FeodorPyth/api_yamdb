@@ -32,7 +32,7 @@ source venv/bin/activate
 Установить зависимости из файла requirements.txt:
 
 ```sh
-python3 -m pip install --upgrade pip
+python -m pip install --upgrade pip
 ```
 
 ```sh
@@ -42,13 +42,13 @@ pip install -r requirements.txt
 Выполнить миграции:
 
 ```sh
-python3 manage.py migrate
+python manage.py migrate
 ```
 
 Запустить проект:
 
 ```sh
-python3 manage.py runserver
+python manage.py runserver
 ```
 ## Особенности Проекта:
 - [x] Настроена Аутентификация по токенам
